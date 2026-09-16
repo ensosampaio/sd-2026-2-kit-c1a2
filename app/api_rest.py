@@ -57,7 +57,7 @@ def predict_sync(entrada: Entrada):
 @app.post("/predict", status_code=202)
 def predict(entrada: Entrada):
     tarefa_id = app.fila.enfileirar(entrada.texto)
-    return ({"tarefa_id": tarefa_id })
+    return ({"id": tarefa_id })
 
 
 
@@ -65,8 +65,6 @@ def predict(entrada: Entrada):
 def resultado(tarefa_id: str):
     """Deve devolver o resultado; 404 se o id nao existir."""
     res = app.fila.buscar_resultado(tarefa_id)
-    
     if res is None:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-    
     return res
