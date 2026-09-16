@@ -57,6 +57,8 @@ def predict_sync(entrada: Entrada):
 @app.post("/predict", status_code=202)
 def predict(entrada: Entrada):
     tarefa_id = app.fila.enfileirar(entrada.texto)
+    return ({"tarefa_id": tarefa_id })
+
 
 
 # ------------------------------------------------------------------
