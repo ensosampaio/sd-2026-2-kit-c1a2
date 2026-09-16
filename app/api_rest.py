@@ -53,14 +53,10 @@ def predict_sync(entrada: Entrada):
     return resultado
 
 
-# ------------------------------------------------------------------
-# TAREFA 1 - submissao assincrona
-# ------------------------------------------------------------------
-# @app.post("/predict", status_code=202)
-# def predict(entrada: Entrada):
-#     """Deve enfileirar a tarefa e devolver {"id": ...} SEM esperar."""
-#     # DICA: use app.fila.enfileirar(entrada.texto)
-#     raise NotImplementedError("implemente a submissao assincrona")
+
+@app.post("/predict", status_code=202)
+def predict(entrada: Entrada):
+    tarefa_id = app.fila.enfileirar(entrada.texto)
 
 
 # ------------------------------------------------------------------
