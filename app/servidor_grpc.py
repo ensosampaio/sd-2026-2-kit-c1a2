@@ -3,8 +3,7 @@ Interface gRPC do servico de inferencia.
 
 PRE-REQUISITO: gerar os stubs antes de rodar (veja scripts/gerar_stubs).
 
-O QUE JA ESTA PRONTO: o metodo Prever.
-O QUE VOCE PRECISA FAZER (TAREFAS.md, item 4): o metodo PreverLote.
+O QUE JA ESTA PRONTO: o metodo Prever e o metodo PreverLote (TAREFA 4).
 
 Rodar:  python -m app.servidor_grpc
 """
@@ -38,9 +37,18 @@ class ServicoInferencia(inferencia_pb2_grpc.InferenciaServicer):
             texto=r["texto"], sentimento=r["sentimento"], confianca=r["confianca"]
         )
 
-    # TAREFA 4: implemente PreverLote, recebendo varios textos de uma vez.
-    # def PreverLote(self, request, context):
-    #     ...
+    def PreverLote(self, request, context):
+        resultados = []
+        for texto in request.textos:
+            r = self.modelo.prever(texto)
+            resultados.append(
+                inferencia_pb2.RespostaPrever(
+                    texto=r["texto"],
+                    sentimento=r["sentimento"],
+                    confianca=r["confianca"],
+                )
+            )
+        return inferencia_pb2.RespostaLote(resultados=resultados)
 
 
 def servir(porta: int = 50051):
