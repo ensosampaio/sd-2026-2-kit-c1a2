@@ -11,7 +11,7 @@ service Inferencia {
   // Ja implementado no exemplo.
   rpc Prever (PedidoPrever) returns (RespostaPrever);
 
-  // TAREFA 4: implemente este metodo no servidor gRPC.
+  // TAREFA 4: implementado no servidor gRPC (app/servidor_grpc.py).
   rpc PreverLote (PedidoLote) returns (RespostaLote);
 }
 
