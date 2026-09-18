@@ -7,6 +7,7 @@ Sistemas Distribuídos e Computação em Nuvem · FAESA · 2026/2
 - Arthur Coutinho Chagas
 - Enzo Sampaio Lopes Herzog de Azeredo
 - Luan Gonçalves dos Santos
+- Lucas Machado de Magalhães
 - Vinícius de Souza Silva
 
 Serviço que recebe um texto e devolve uma classificação de sentimento
