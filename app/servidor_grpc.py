@@ -7,10 +7,13 @@ O QUE JA ESTA PRONTO: o metodo Prever e o metodo PreverLote (TAREFA 4).
 
 Rodar:  python -m app.servidor_grpc
 """
+import time
+import uuid
 from concurrent import futures
 
 import grpc
 
+from app.log_requisicoes import registrar_requisicao
 from app.modelo import carregar_modelo
 
 try:
@@ -32,15 +35,24 @@ class ServicoInferencia(inferencia_pb2_grpc.InferenciaServicer):
         print("[grpc] modelo pronto")
 
     def Prever(self, request, context):
+        inicio = time.time()
         r = self.modelo.prever(request.texto)
+        registrar_requisicao(
+            str(uuid.uuid4()), len(request.texto),
+            round((time.time() - inicio) * 1000, 2),
+            origem="grpc-prever",
+        )
         return inferencia_pb2.RespostaPrever(
             texto=r["texto"], sentimento=r["sentimento"], confianca=r["confianca"]
         )
 
     def PreverLote(self, request, context):
+        inicio = time.time()
         resultados = []
+        tamanho_total = 0
         for texto in request.textos:
             r = self.modelo.prever(texto)
+            tamanho_total += len(texto)
             resultados.append(
                 inferencia_pb2.RespostaPrever(
                     texto=r["texto"],
@@ -48,6 +60,11 @@ class ServicoInferencia(inferencia_pb2_grpc.InferenciaServicer):
                     confianca=r["confianca"],
                 )
             )
+        registrar_requisicao(
+            str(uuid.uuid4()), tamanho_total,
+            round((time.time() - inicio) * 1000, 2),
+            origem="grpc-preverlote",
+        )
         return inferencia_pb2.RespostaLote(resultados=resultados)
 
 

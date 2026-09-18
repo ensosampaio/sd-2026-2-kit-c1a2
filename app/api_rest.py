@@ -13,11 +13,13 @@ Rodar:  uvicorn app.api_rest:app --reload --port 8000
 Docs:   http://localhost:8000/docs
 """
 import time
+import uuid
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app.modelo import carregar_modelo
+from app.log_requisicoes import registrar_requisicao
 from app import fila
 
 app = FastAPI(title="Servico de Inferencia - C1.A2", version="0.1.0")
@@ -51,13 +53,23 @@ def predict_sync(entrada: Entrada):
     inicio = time.time()
     resultado = modelo.prever(entrada.texto)
     resultado["tempo_ms"] = round((time.time() - inicio) * 1000, 2)
+    registrar_requisicao(
+        str(uuid.uuid4()), len(entrada.texto), resultado["tempo_ms"],
+        origem="rest-sync",
+    )
     return resultado
 
 
 
 @app.post("/predict", status_code=202)
 def predict(entrada: Entrada):
+    inicio = time.time()
     tarefa_id = fila.enfileirar(entrada.texto)
+    registrar_requisicao(
+        tarefa_id, len(entrada.texto),
+        round((time.time() - inicio) * 1000, 2),
+        origem="rest-async-submissao",
+    )
     return ({"id": tarefa_id })
 
 
@@ -65,7 +77,12 @@ def predict(entrada: Entrada):
 @app.get("/resultado/{tarefa_id}")
 def resultado(tarefa_id: str):
     """Deve devolver o resultado; 404 se o id nao existir."""
+    inicio = time.time()
     res = fila.buscar_resultado(tarefa_id)
+    registrar_requisicao(
+        tarefa_id, 0, round((time.time() - inicio) * 1000, 2),
+        origem="rest-async-consulta",
+    )
     if res is None:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
     return res

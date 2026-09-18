@@ -12,6 +12,7 @@ import redis
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 FILA_TAREFAS = "tarefas"
+FILA_DEAD_LETTER = "tarefas:dead_letter"
 PREFIXO_RESULTADO = "resultado:"
 
 _cliente = None
@@ -48,3 +49,18 @@ def guardar_resultado(tarefa_id: str, resultado: dict) -> None:
 def buscar_resultado(tarefa_id: str):
     bruto = cliente().get(PREFIXO_RESULTADO + tarefa_id)
     return json.loads(bruto) if bruto else None
+
+
+def enviar_para_dead_letter(tarefa: dict, erro: str, tentativas: int) -> None:
+    """Grava a tarefa que esgotou as tentativas numa fila de descarte
+    dedicada (lista Redis separada da fila principal), para inspecao
+    posterior. Nao remove o status "falha" salvo por guardar_resultado.
+    """
+    cliente().rpush(
+        FILA_DEAD_LETTER,
+        json.dumps({**tarefa, "erro": erro, "tentativas": tentativas}),
+    )
+
+
+def tamanho_dead_letter() -> int:
+    return cliente().llen(FILA_DEAD_LETTER)

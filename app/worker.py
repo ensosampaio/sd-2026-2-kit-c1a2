@@ -11,6 +11,7 @@ Suba mais de um worker em terminais diferentes e veja a carga se dividir.
 import time
 
 from app import fila
+from app.log_requisicoes import registrar_requisicao
 from app.modelo import carregar_modelo
 
 MAX_TENTATIVAS = 3
@@ -20,7 +21,7 @@ BACKOFF_BASE_SEGUNDOS = 1.0
 def processar_tarefa(modelo, tarefa):
     """Executa a inferencia com retentativa (backoff exponencial) e,
     se todas as tentativas falharem, registra a tarefa como falha
-    definitiva (dead-letter) via fila.guardar_resultado.
+    definitiva e envia para a fila de dead-letter.
     """
     for tentativa in range(1, MAX_TENTATIVAS + 1):
         inicio = time.time()
@@ -30,6 +31,10 @@ def processar_tarefa(modelo, tarefa):
             resultado["tempo_ms"] = round((time.time() - inicio) * 1000, 2)
 
             fila.guardar_resultado(tarefa["id"], resultado)
+            registrar_requisicao(
+                tarefa["id"], len(tarefa["texto"]), resultado["tempo_ms"],
+                origem="worker",
+            )
             print(
                 f"[worker] {tarefa['id']} concluida em "
                 f"{resultado['tempo_ms']}ms (tentativa {tentativa}/{MAX_TENTATIVAS})"
@@ -48,11 +53,11 @@ def processar_tarefa(modelo, tarefa):
                 time.sleep(espera)
             else:
                 # TAREFA 5: esgotou as tentativas -> dead-letter.
-                # Aqui gravamos a tarefa como falha definitiva para que o
-                # cliente consiga consultar o status. Se o modulo `fila`
-                # tiver uma fila de descarte dedicada (ex.: um metodo como
-                # `fila.enviar_para_dead_letter(...)`), troque a chamada
-                # abaixo por ela.
+                # Gravamos o status "falha" (para o cliente conseguir
+                # consultar via GET /resultado/{id}) e tambem enviamos a
+                # tarefa para a fila de descarte dedicada, com o erro e o
+                # numero de tentativas, para inspecao posterior.
+                tempo_ms = round((time.time() - inicio) * 1000, 2)
                 fila.guardar_resultado(
                     tarefa["id"],
                     {
@@ -60,6 +65,11 @@ def processar_tarefa(modelo, tarefa):
                         "erro": str(erro),
                         "tentativas": tentativa,
                     },
+                )
+                fila.enviar_para_dead_letter(tarefa, str(erro), tentativa)
+                registrar_requisicao(
+                    tarefa["id"], len(tarefa["texto"]), tempo_ms,
+                    origem="worker-dead-letter",
                 )
                 print(
                     f"[worker] {tarefa['id']} enviada para dead-letter "
