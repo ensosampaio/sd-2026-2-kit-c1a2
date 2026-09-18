@@ -2,6 +2,13 @@
 
 Sistemas Distribuídos e Computação em Nuvem · FAESA · 2026/2
 
+## Integrantes
+
+- Arthur Coutinho Chagas
+- Enzo Sampaio Lopes Herzog de Azeredo
+- Luan Gonçalves dos Santos
+- Vinícius de Souza Silva
+
 Serviço que recebe um texto e devolve uma classificação de sentimento
 (positivo/negativo), exposto por duas interfaces de comunicação — **REST**
 e **gRPC** — e desacoplado da inferência em si por uma **fila** (Redis), para
